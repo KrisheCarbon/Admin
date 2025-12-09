@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/Modal";
 
 export default function ArtisanProSection() {
@@ -11,6 +11,7 @@ export default function ArtisanProSection() {
   const [openView, setOpenView] = useState(null);
   const [editing, setEditing] = useState(null);
   const [menuOpenId, setMenuOpenId] = useState(null);
+  const dropdownRef = useRef(null);
 
   const [form, setForm] = useState({
     id: "",
@@ -27,7 +28,16 @@ export default function ArtisanProSection() {
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("csink:artisan-pros") || "[]");
-      if (Array.isArray(saved)) setArtisanPros(saved);
+      if (Array.isArray(saved) && saved.length > 0) {
+        setArtisanPros(saved);
+      } else {
+        const seed = [
+          { id: "AP-001", name: "Ravi Kumar", klins: ["K1", "K2"], gps: "17.3850, 78.4867", productionPerYear: "10 tons", block: "Madhapur", district: "Hyderabad", state: "Telangana" },
+          { id: "AP-002", name: "Sita Devi", klins: ["K3"], gps: "", productionPerYear: "", block: "", district: "Warangal", state: "Telangana" },
+        ];
+        setArtisanPros(seed);
+        localStorage.setItem("csink:artisan-pros", JSON.stringify(seed));
+      }
     } catch {}
   }, []);
 
@@ -89,12 +99,14 @@ export default function ArtisanProSection() {
 
   // Close any open menus when clicking outside
   useEffect(() => {
-    function onDocClick() {
-      setMenuOpenId(null);
+    function onDocClick(e) {
+      if (!menuOpenId) return;
+      const el = dropdownRef.current;
+      if (el && !el.contains(e.target)) setMenuOpenId(null);
     }
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
-  }, []);
+  }, [menuOpenId]);
 
   function addKlin() {
     const value = (klinInput || "").trim();
@@ -124,9 +136,12 @@ export default function ArtisanProSection() {
                 e.preventDefault();
                 openAddModal();
               }}
-              className="inline-flex items-center bg-black text-white rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium"
+              className="inline-flex items-center gap-2 rounded-full bg-black text-white px-4 py-2 text-xs font-semibold shadow-sm ring-1 ring-black/10 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition"
             >
-              + Add record
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add record
             </button>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -142,7 +157,7 @@ export default function ArtisanProSection() {
         </summary>
 
         <div className="border-t border-slate-200 px-4 pb-4 pt-3 md:px-5 md:pb-5">
-          <div className="overflow-hidden rounded-lg border border-slate-200">
+          <div className="overflow-visible rounded-lg border border-slate-200">
             <div className="hidden grid-cols-12 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 sm:grid">
               {columns.map((c, i) => (
                 <div key={i} className={`${headerSpanClasses[i]} ${i === columns.length - 1 ? "text-right" : ""}`}>{c}</div>
@@ -158,7 +173,7 @@ export default function ArtisanProSection() {
                     <div className="sm:col-span-4">{(row.klins || []).join(", ") || "-"}</div>
                     <div className="sm:col-span-2">{row.gps || "-"}</div>
                     <div className="sm:col-span-1 sm:text-right">
-                      <div className="relative inline-block text-left z-10">
+                      <div className="relative inline-block text-left z-10" ref={menuOpenId === row.id ? dropdownRef : null}>
                         <button
                           aria-label="Actions"
                           onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === row.id ? null : row.id); }}
@@ -171,7 +186,7 @@ export default function ArtisanProSection() {
                           </svg>
                         </button>
                         {menuOpenId === row.id ? (
-                          <div onClick={(e)=>e.stopPropagation()} className="absolute right-0 mt-2 w-40 rounded-md border border-slate-200 bg-white shadow-lg">
+                          <div onClick={(e)=>e.stopPropagation()} className="absolute right-0 mt-2 w-44 rounded-lg border border-slate-200 bg-white shadow-lg shadow-black/5 overflow-hidden">
                             <button onClick={() => onView(row.id)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
@@ -229,61 +244,61 @@ export default function ArtisanProSection() {
         }
       >
         <form className="grid gap-5">
-          <section className="rounded-lg border border-slate-200 p-4 sm:p-5 bg-white">
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Identity</h4>
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900 Sbold">Identity</h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">Artisan Pro ID</label>
-                <input value={form.id} onChange={(e)=>setForm((f)=>({...f, id:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Unique ID" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Artisan Pro ID</label>
+                <input value={form.id} onChange={(e)=>setForm((f)=>({...f, id:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Unique ID" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">Artisan Pro Name</label>
-                <input value={form.name} onChange={(e)=>setForm((f)=>({...f, name:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Full name / Firm name" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Artisan Pro Name</label>
+                <input value={form.name} onChange={(e)=>setForm((f)=>({...f, name:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Full name / Firm name" />
               </div>
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 p-4 sm:p-5 bg-white">
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Production & Location</h4>
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900 Sbold">Production & Location</h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">GPS Coordinates</label>
-                <input value={form.gps} onChange={(e)=>setForm((f)=>({...f, gps:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="e.g., 17.3850, 78.4867" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">GPS Coordinates</label>
+                <input value={form.gps} onChange={(e)=>setForm((f)=>({...f, gps:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="e.g., 17.3850, 78.4867" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">Estimated Production per year</label>
-                <input value={form.productionPerYear} onChange={(e)=>setForm((f)=>({...f, productionPerYear:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="e.g., 10 tons" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Estimated Production per year</label>
+                <input value={form.productionPerYear} onChange={(e)=>setForm((f)=>({...f, productionPerYear:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="e.g., 10 tons" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">Block</label>
-                <input value={form.block} onChange={(e)=>setForm((f)=>({...f, block:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Block" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Block</label>
+                <input value={form.block} onChange={(e)=>setForm((f)=>({...f, block:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Block" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">District</label>
-                <input value={form.district} onChange={(e)=>setForm((f)=>({...f, district:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="District" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">District</label>
+                <input value={form.district} onChange={(e)=>setForm((f)=>({...f, district:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="District" />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-medium">State</label>
-                <input value={form.state} onChange={(e)=>setForm((f)=>({...f, state:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="State" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">State</label>
+                <input value={form.state} onChange={(e)=>setForm((f)=>({...f, state:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="State" />
               </div>
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 p-4 sm:p-5 bg-white">
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Klins under Artisan Pro</h4>
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900 Sbold">Klins under Artisan Pro</h4>
             <div className="flex items-center gap-2">
               <input
                 value={klinInput}
                 onChange={(e)=>setKlinInput(e.target.value)}
                 onKeyDown={(e)=>{ if(e.key === "Enter"){ e.preventDefault(); addKlin(); }}}
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none"
+                className="flex-1 rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition"
                 placeholder="Enter klin name/id and press Add"
               />
-              <button type="button" onClick={addKlin} className="rounded-md bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Add</button>
+              <button type="button" onClick={addKlin} className="rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-gray-900 transition">Add</button>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {(form.klins || []).map((k, i) => (
-                <span key={i} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs">
+                <span key={i} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-900 shadow-sm">
                   {k}
                   <button type="button" onClick={()=>removeKlin(i)} aria-label="Remove" className="text-gray-500 hover:text-black">✕</button>
                 </span>
@@ -299,32 +314,55 @@ export default function ArtisanProSection() {
           const data = artisanPros.find((p) => p.id === openView);
           if (!data) return <p className="text-sm text-gray-600">Record not found.</p>;
           return (
-            <div className="grid gap-3 text-sm text-gray-800 sm:grid-cols-2">
-              <div>
-                <span className="text-gray-500">ID:</span> <span className="ml-1 font-medium">{data.id}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Name:</span> <span className="ml-1 font-medium">{data.name}</span>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="text-gray-500">Klins:</span> <span className="ml-1 font-medium">{(data.klins || []).join(", ") || "-"}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">GPS:</span> <span className="ml-1 font-medium">{data.gps || "-"}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Production/year:</span>{" "}
-                <span className="ml-1 font-medium">{data.productionPerYear || "-"}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Block:</span> <span className="ml-1 font-medium">{data.block || "-"}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">District:</span> <span className="ml-1 font-medium">{data.district || "-"}</span>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="text-gray-500">State:</span> <span className="ml-1 font-medium">{data.state || "-"}</span>
-              </div>
+            <div className="grid gap-4">
+              <section className="rounded-xl border border-slate-200 bg-white/90 p-4">
+                <h5 className="mb-3 text-sm font-semibold text-slate-900">Overview</h5>
+                <div className="grid gap-3 text-sm text-slate-900 sm:grid-cols-2">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">ID</div>
+                    <div className="font-medium">{data.id}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">Name</div>
+                    <div className="font-medium">{data.name}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">GPS</div>
+                    <div className="font-medium">{data.gps || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">Production / year</div>
+                    <div className="font-medium">{data.productionPerYear || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">Block</div>
+                    <div className="font-medium">{data.block || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">District</div>
+                    <div className="font-medium">{data.district || "-"}</div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">State</div>
+                    <div className="font-medium">{data.state || "-"}</div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white/90 p-4">
+                <h5 className="mb-3 text-sm font-semibold text-slate-900">Klins</h5>
+                <div className="flex flex-wrap gap-2">
+                  {(data.klins && data.klins.length > 0) ? (
+                    data.klins.map((k, i) => (
+                      <span key={i} className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-900 shadow-sm">
+                        {k}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-500">No klins</span>
+                  )}
+                </div>
+              </section>
             </div>
           );
         })()}

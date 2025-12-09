@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/Modal";
 
 export default function FarmSection() {
@@ -28,7 +28,16 @@ export default function FarmSection() {
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("csink:farms") || "[]");
-      if (Array.isArray(saved)) setFarms(saved);
+      if (Array.isArray(saved) && saved.length > 0) {
+        setFarms(saved);
+      } else {
+        const seed = [
+          { id: "farm-1", name: "Green Valley Farm", phone: "9000000001", projectSiteMode: "Input Coordinate", lat: "17.4000", lng: "78.5000" },
+          { id: "farm-2", name: "Sunrise Farm", phone: "9000000002", projectSiteMode: "Search location", searchQuery: "Warangal" },
+        ];
+        setFarms(seed);
+        localStorage.setItem("csink:farms", JSON.stringify(seed));
+      }
     } catch {}
   }, []);
 
@@ -38,11 +47,17 @@ export default function FarmSection() {
     } catch {}
   }, [farms]);
 
+  const dropdownRef = useRef(null);
+
   useEffect(() => {
-    function onDoc() { setMenuOpenId(null); }
+    function onDoc(e) {
+      if (!menuOpenId) return;
+      const el = dropdownRef.current;
+      if (el && !el.contains(e.target)) setMenuOpenId(null);
+    }
     document.addEventListener("click", onDoc);
     return () => document.removeEventListener("click", onDoc);
-  }, []);
+  }, [menuOpenId]);
 
   function resetForm() {
     setForm({
@@ -94,6 +109,24 @@ export default function FarmSection() {
     setForm((f) => ({ ...f, shapeFileName: file.name, shapeFileType: file.type || "application/octet-stream" }));
   }
 
+  function UploadField({ label, accept, onChange, selectedName }) {
+    return (
+      <div>
+        <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">{label}</label>
+        <label className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-300/80 bg-white px-4 py-6 text-center cursor-pointer transition hover:border-black hover:shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <path d="M17 8l-5-5-5 5" />
+            <path d="M12 3v12" />
+          </svg>
+          <span className="text-xs Smedium text-slate-900">{selectedName ? "Change file" : "Click to upload"}</span>
+          <span className="text-[11px] text-slate-500">{selectedName ? selectedName : "or drag & drop"}</span>
+          <input type="file" accept={accept} onChange={onChange} className="hidden" />
+        </label>
+      </div>
+    );
+  }
+
   function locationLabel(row) {
     if (row.projectSiteMode === "Use my current location" || row.projectSiteMode === "Input Coordinate") {
       const lat = row.lat ? Number(row.lat).toFixed(4) : "-";
@@ -112,13 +145,16 @@ export default function FarmSection() {
         <summary className="flex cursor-pointer select-none items-center justify-between gap-4 px-5 py-4">
           <span className="text-lg font-semibold text-slate-900">Farm</span>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={(e) => { e.preventDefault(); openAddModal(); }} className="inline-flex items-center bg-black text-white rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium">+ Add record</button>
+            <button type="button" onClick={(e) => { e.preventDefault(); openAddModal(); }} className="inline-flex items-center gap-2 rounded-full bg-black text-white px-4 py-2 text-xs font-semibold shadow-sm ring-1 ring-black/10 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
+              Add record
+            </button>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 text-slate-500 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
           </div>
         </summary>
 
         <div className="border-t border-slate-200 px-4 pb-4 pt-3 md:px-5 md:pb-5">
-          <div className="overflow-hidden rounded-lg border border-slate-200">
+          <div className="overflow-visible rounded-lg border border-slate-200">
             <div className="hidden grid-cols-12 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 sm:grid">
               {columns.map((c, i) => (
                 <div key={i} className={`${headerSpanClasses[i]} ${i === columns.length - 1 ? "text-right" : ""}`}>{c}</div>
@@ -132,12 +168,12 @@ export default function FarmSection() {
                     <div className="sm:col-span-3">{row.phone || "-"}</div>
                     <div className="sm:col-span-3">{locationLabel(row)}</div>
                     <div className="sm:col-span-1 sm:text-right">
-                      <div className="relative inline-block text-left z-10">
+                      <div className="relative inline-block text-left z-10" ref={menuOpenId === row.id ? dropdownRef : null}>
                         <button aria-label="Actions" onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === row.id ? null : row.id); }} className="rounded p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-black/20">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
                         </button>
                         {menuOpenId === row.id ? (
-                          <div onClick={(e)=>e.stopPropagation()} className="absolute right-0 mt-2 w-40 rounded-md border border-slate-200 bg-white shadow-lg">
+                          <div onClick={(e)=>e.stopPropagation()} className="absolute right-0 mt-2 w-44 rounded-lg border border-slate-200 bg-white shadow-lg shadow-black/5 overflow-hidden">
                             <button onClick={() => onView(row.id)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>View</button>
                             <button onClick={() => onEdit(row.id)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>Edit</button>
                             <button onClick={() => onDelete(row.id)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-600 hover:bg-slate-50"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>Delete</button>
@@ -164,26 +200,26 @@ export default function FarmSection() {
         footer={<><button onClick={() => { setOpenAdd(false); setEditing(null); }} className="rounded-md border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">Cancel</button><button onClick={submitForm} disabled={!form.name} className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed">{editing ? "Save" : "Create"}</button></>}
       >
         <form className="grid gap-5">
-          <section className="rounded-lg border border-slate-200 p-4 sm:p-5 bg-white">
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Identity</h4>
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900 Sbold">Identity</h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">Name</label>
-                <input value={form.name} onChange={(e)=>setForm((f)=>({...f, name:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Farm name / Owner name" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Name</label>
+                <input value={form.name} onChange={(e)=>setForm((f)=>({...f, name:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Farm name / Owner name" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">Phone (optional)</label>
-                <input value={form.phone} onChange={(e)=>setForm((f)=>({...f, phone:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="+91 9xxxxxxxxx" />
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Phone (optional)</label>
+                <input value={form.phone} onChange={(e)=>setForm((f)=>({...f, phone:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="+91 9xxxxxxxxx" />
               </div>
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 p-4 sm:p-5 bg-white">
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Location</h4>
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900 Sbold">Location</h4>
             <div className="grid gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium">Mode</label>
-                <select value={form.projectSiteMode} onChange={(e)=>setForm((f)=>({...f, projectSiteMode:e.target.value}))} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none">
+                <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600 Smedium">Mode</label>
+                <select value={form.projectSiteMode} onChange={(e)=>setForm((f)=>({...f, projectSiteMode:e.target.value}))} className="w-full rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition">
                   <option value="">Select</option>
                   <option>Use my current location</option>
                   <option>Input Coordinate</option>
@@ -195,21 +231,21 @@ export default function FarmSection() {
 
               {form.projectSiteMode === "Use my current location" ? (
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <button type="button" onClick={onUseCurrentLocation} className="rounded-md bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900 w-max">Fill current location</button>
-                  <input value={form.lat} onChange={(e)=>setForm((f)=>({...f, lat:e.target.value}))} className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Latitude" />
-                  <input value={form.lng} onChange={(e)=>setForm((f)=>({...f, lng:e.target.value}))} className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Longitude" />
+                  <button type="button" onClick={onUseCurrentLocation} className="rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-gray-900 w-max transition">Fill current location</button>
+                  <input value={form.lat} onChange={(e)=>setForm((f)=>({...f, lat:e.target.value}))} className="rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Latitude" />
+                  <input value={form.lng} onChange={(e)=>setForm((f)=>({...f, lng:e.target.value}))} className="rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Longitude" />
                 </div>
               ) : null}
 
               {form.projectSiteMode === "Input Coordinate" ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input value={form.lat} onChange={(e)=>setForm((f)=>({...f, lat:e.target.value}))} className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Latitude" />
-                  <input value={form.lng} onChange={(e)=>setForm((f)=>({...f, lng:e.target.value}))} className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Longitude" />
+                  <input value={form.lat} onChange={(e)=>setForm((f)=>({...f, lat:e.target.value}))} className="rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Latitude" />
+                  <input value={form.lng} onChange={(e)=>setForm((f)=>({...f, lng:e.target.value}))} className="rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Longitude" />
                 </div>
               ) : null}
 
               {form.projectSiteMode === "Search location" ? (
-                <input value={form.searchQuery} onChange={(e)=>setForm((f)=>({...f, searchQuery:e.target.value}))} className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="Search query" />
+                <input value={form.searchQuery} onChange={(e)=>setForm((f)=>({...f, searchQuery:e.target.value}))} className="rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="Search query" />
               ) : null}
 
               {form.projectSiteMode === "Set location" ? (
@@ -218,7 +254,7 @@ export default function FarmSection() {
 
               {form.projectSiteMode === "Google maps URL" ? (
                 <div className="grid gap-3">
-                  <input value={form.mapsUrl} onChange={(e)=>setForm((f)=>({...f, mapsUrl:e.target.value}))} className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none" placeholder="https://maps.google.com/..." />
+                  <input value={form.mapsUrl} onChange={(e)=>setForm((f)=>({...f, mapsUrl:e.target.value}))} className="rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-inner focus:ring-2 focus:ring-black focus:border-black outline-none transition" placeholder="https://maps.google.com/..." />
                   {form.mapsUrl ? (
                     <div className="rounded-md border border-slate-200 overflow-hidden">
                       <iframe title="Map Preview" src={form.mapsUrl} className="h-56 w-full" />
@@ -229,13 +265,11 @@ export default function FarmSection() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 p-4 sm:p-5 bg-white">
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Documents</h4>
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+            <h4 className="mb-3 text-sm font-semibold text-slate-900 Sbold">Documents</h4>
             <div className="grid gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium">Shape file</label>
-                <input type="file" accept=".zip,.shp,application/zip" onChange={onFileChange} className="block w-full text-sm" />
-                {form.shapeFileName ? <p className="mt-1 text-xs text-slate-600">Selected: {form.shapeFileName}</p> : null}
+                <UploadField label="Shape file" accept=".zip,.shp,application/zip" onChange={onFileChange} selectedName={form.shapeFileName} />
               </div>
             </div>
           </section>
@@ -248,16 +282,43 @@ export default function FarmSection() {
           const data = farms.find((p) => p.id === openView);
           if (!data) return <p className="text-sm text-gray-600">Record not found.</p>;
           return (
-            <div className="grid gap-3 text-sm text-gray-800 sm:grid-cols-2">
-              <div><span className="text-gray-500">Name:</span> <span className="ml-1 font-medium">{data.name}</span></div>
-              <div><span className="text-gray-500">Phone:</span> <span className="ml-1 font-medium">{data.phone || "-"}</span></div>
-              <div className="sm:col-span-2"><span className="text-gray-500">Location:</span> <span className="ml-1 font-medium">{locationLabel(data)}</span></div>
-              {data.mapsUrl ? (
-                <div className="sm:col-span-2 rounded-md border border-slate-200 overflow-hidden">
-                  <iframe title="Map" src={data.mapsUrl} className="h-56 w-full" />
+            <div className="grid gap-4">
+              <section className="rounded-xl border border-slate-200 bg-white/90 p-4">
+                <h5 className="mb-3 text-sm font-semibold text-slate-900">Identity</h5>
+                <div className="grid gap-3 text-sm text-slate-900 sm:grid-cols-2">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">Name</div>
+                    <div className="font-medium">{data.name}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">Phone</div>
+                    <div className="font-medium">{data.phone || "-"}</div>
+                  </div>
                 </div>
-              ) : null}
-              <div className="sm:col-span-2"><span className="text-gray-500">Shape file:</span> <span className="ml-1 font-medium">{data.shapeFileName || "-"}</span></div>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white/90 p-4">
+                <h5 className="mb-3 text-sm font-semibold text-slate-900">Location</h5>
+                <div className="grid gap-3 text-sm text-slate-900">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">Label</div>
+                    <div className="font-medium">{locationLabel(data)}</div>
+                  </div>
+                  {data.mapsUrl ? (
+                    <div className="rounded-md border border-slate-200 overflow-hidden">
+                      <iframe title="Map" src={data.mapsUrl} className="h-56 w-full" />
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white/90 p-4">
+                <h5 className="mb-3 text-sm font-semibold text-slate-900">Documents</h5>
+                <div className="text-sm text-slate-900">
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500">Shape file</div>
+                  <div className="font-medium">{data.shapeFileName || "-"}</div>
+                </div>
+              </section>
             </div>
           );
         })()}

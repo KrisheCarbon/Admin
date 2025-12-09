@@ -25,9 +25,7 @@ export default function Sidebar({ open = false, onClose }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed h-screen inset-y-0 left-0 z-50 w-64 transform bg-white border-r border-gray-200 shadow-md transition-transform duration-300 ease-in-out md:static md:z-auto md:shadow-none ${
-          open ? "translate-x-0 md:translate-x-0 md:block" : "-translate-x-full md:hidden"
-        }`}
+        className={`fixed h-screen inset-y-0 left-0 z-50 w-64 transform bg-white border-r border-gray-200 shadow-md transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-screen flex-col bg-white">
           {/* Sidebar Header with logo + name and mobile close */}

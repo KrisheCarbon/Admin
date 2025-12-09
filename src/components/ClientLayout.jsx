@@ -21,10 +21,15 @@ export default function ClientLayout({ children }) {
         </button>
       )}
 
-      <div className={`grid grid-cols-1 ${sidebarOpen ? "md:grid-cols-[240px_1fr]" : "md:grid-cols-1"}`}>
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen((v) => !v)} />
-        <main className={`min-h-screen p-4 sm:p-6 lg:p-8 ${!sidebarOpen ? "pt-14" : ""}`}>{children}</main>
-      </div>
+      {/* Fixed Sidebar */}
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen((v) => !v)} />
+
+      {/* Main content shifts when sidebar is open on md+ */}
+      <main
+        className={`min-h-screen p-4 sm:p-6 lg:p-8 ${!sidebarOpen ? "pt-14" : ""} ${sidebarOpen ? "md:ml-64" : "md:ml-0"} bg-gray-50 transition-[margin] duration-300 ease-in-out`}
+      >
+        {children}
+      </main>
     </div>
   );
 }

@@ -2,10 +2,10 @@ import StatCard from "@/components/StatCard";
 
 export default function Home() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 m-10">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight text-gray-800">Dashboard</h1>
+      <div className="flex items-center justify-between ">
+        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
         <div className="text-sm text-gray-500">Welcome back, Admin</div>
       </div>
 
