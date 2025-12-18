@@ -10,6 +10,7 @@ export default function Sidebar({ open = false, onClose }) {
     { href: "/", label: "Dashboard", icon: "/icons/gauge.svg" },
     { href: "/c-sink-network", label: "C-Sink Network", icon: "/globe.svg" },
     { href: "/biochar", label: "Biochar", icon: "/icons/leaf.svg" },
+    { href: "/register-intent", label: "Register Intent", icon: "/icons/users.svg" },
     { href: "/reports", label: "Reports", icon: "/file.svg" },
   ];
 

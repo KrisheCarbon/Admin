@@ -2,11 +2,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "@/components/Modal";
 import { fetchPartners } from "@/lib/partners";
-import { fetchOrganizations } from "@/lib/organizations";
+import { fetchApprovedOrganizations } from "@/lib/approvedOrganizations";
 
 export default function SupervisorSection() {
-  const columns = ["Name", "Mobile", "Education", "Cluster", ""];
-  const headerSpanClasses = ["col-span-4", "col-span-3", "col-span-2", "col-span-2", "col-span-1"]; // sum 12
+  const columns = ["Name", "Mobile", "Partner", "Education", "Cluster", ""];
+  const headerSpanClasses = ["col-span-3", "col-span-2", "col-span-3", "col-span-2", "col-span-1", "col-span-1"]; // sum 12
 
   const [supervisors, setSupervisors] = useState([]);
   const [openAdd, setOpenAdd] = useState(false);
@@ -20,8 +20,8 @@ export default function SupervisorSection() {
     if (!openAdd) return;
     let cancelled = false;
     (async () => {
-      // 1) Try Firestore organizations
-      const org = await fetchOrganizations();
+      // 1) Try approved organizations (only accepted show up)
+      const org = await fetchApprovedOrganizations();
       if (!cancelled && org.ok && org.organizations.length > 0) {
         setPartnerOptions(
           org.organizations.map((o) => ({
@@ -261,10 +261,11 @@ export default function SupervisorSection() {
               {supervisors.map((row) => (
                 <li key={row.id} className="px-4 py-3 bg-white/60 hover:bg-slate-50 transition-colors">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-center text-slate-700">
-                    <div className="sm:col-span-4">{row.name}</div>
-                    <div className="sm:col-span-3">{row.phone}</div>
+                    <div className="sm:col-span-3">{row.name}</div>
+                    <div className="sm:col-span-2">{row.phone}</div>
+                    <div className="sm:col-span-3">{row.partnerLabel || "-"}</div>
                     <div className="sm:col-span-2">{row.education || "-"}</div>
-                    <div className="sm:col-span-2">{row.cluster || "-"}</div>
+                    <div className="sm:col-span-1">{row.cluster || "-"}</div>
                     <div className="sm:col-span-1 sm:text-right">
                       <div className="relative inline-block text-left z-10" ref={menuOpenId === row.id ? dropdownRef : null}>
                         <button aria-label="Actions" onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId === row.id ? null : row.id); }} className="rounded p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-black/20">
