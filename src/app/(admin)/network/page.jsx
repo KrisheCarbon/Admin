@@ -18,12 +18,12 @@ export default function CSinkNetworkOverviewPage() {
 
       {/* High-level metrics */}
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <OverviewCard label="Artisan Pros" value="128" href="/c-sink-network/artisan-pros" />
         <OverviewCard label="Partners" value="24" href="/network/partners" />
-        <OverviewCard label="Supervisors" value="18" href="/network/supervisors" />
         <OverviewCard label="Clusters" value="9" href="/network/clusters" />
-        <OverviewCard label="Biochar Producers" value="12" href="/network/biochar-producers" />
+        <OverviewCard label="Artisan Pros" value="128" href="/network/artisan-pros" />
         <OverviewCard label="Kontikkis" value="56" href="/network/kontikkis" />
+        <OverviewCard label="Supervisors" value="18" href="/network/supervisors" />
+        <OverviewCard label="Climapreneurs" value="12" href="/network/climapreneurs" />
         <OverviewCard label="Farms" value="342" href="/network/farms" />
         <OverviewCard label="Trainings" value="21" href="/network/trainings" />
       </section>

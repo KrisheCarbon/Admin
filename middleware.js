@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+
+export function middleware() {
+  return NextResponse.next();
+}
+
+
+{/*
 export async function middleware(req) {
   const res = NextResponse.next();
   const pathname = req.nextUrl.pathname;
@@ -42,3 +49,5 @@ export async function middleware(req) {
 export const config = {
   matcher: ["/((?!_next|favicon.ico|icons|images).*)"],
 };
+
+*/}

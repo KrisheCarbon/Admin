@@ -67,7 +67,7 @@ export default function AuthPage() {
               className="h-12"
             />
           </div>
-          <h1 className="text-lg Sbold text-gray-900">
+          <h1 className="text-lg Sbold text-grey-900">
             KrisheCarbon Admin
           </h1>
         </div>

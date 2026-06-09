@@ -46,7 +46,7 @@ export default function Sidebar() {
           <SubItem href="/network/partners" label="Partners" pathname={pathname} />
           <SubItem href="/network/supervisors" label="Supervisors" pathname={pathname} />
           <SubItem href="/network/clusters" label="Clusters" pathname={pathname} />
-          <SubItem href="/network/biochar-producers" label="Biochar Producers" pathname={pathname} />
+          <SubItem href="/network/climapreneurs" label="Climapreneurs" pathname={pathname} />
           <SubItem href="/network/kontikkis" label="Kontikkis" pathname={pathname} />
           <SubItem href="/network/farms" label="Farms" pathname={pathname} />
           <SubItem href="/network/trainings" label="Trainings" pathname={pathname} />
@@ -56,6 +56,7 @@ export default function Sidebar() {
       <SidebarItem href="/biochar" label="Biochar" icon="/icons/biochar.svg" pathname={pathname} />
       <SidebarItem href="/intents" label="Intents" icon="/icons/intents.svg" pathname={pathname} />
       <SidebarItem href="/reports" label="Reports" icon="/icons/reports.svg" pathname={pathname} />
+      <SidebarItem href="/users" label="Users" icon="/icons/users.svg" pathname={pathname} />
 
     </nav>
   );
