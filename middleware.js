@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 const PUBLIC_PREFIXES = ["/auth", "/onboarding", "/signup"];
+const PORTAL_ROLES = ["admin", "supervisor"];
 
 function isPublicRoute(pathname) {
   return PUBLIC_PREFIXES.some(
@@ -33,20 +34,31 @@ export async function middleware(req) {
 
   // Public routes
   if (isPublicRoute(pathname)) {
-    // Let /auth/callback finish the invite flow without redirecting away.
     if (user && (pathname === "/auth" || pathname === "/signup")) {
       const { data: profile } = await supabase
         .from("users")
-        .select("status")
+        .select("status, role")
         .eq("id", user.id)
         .single();
 
       if (profile?.status === "pending_auth") {
-        return NextResponse.redirect(new URL("/signup", req.url));
+        // Already on /signup — do not redirect to the same URL (causes loop).
+        if (pathname !== "/signup") {
+          return NextResponse.redirect(new URL("/signup", req.url));
+        }
+        return res;
       }
 
       if (profile?.status === "active") {
-        return NextResponse.redirect(new URL("/", req.url));
+        const canAccessPortal = PORTAL_ROLES.includes(profile.role);
+        if (pathname === "/signup") {
+          return NextResponse.redirect(
+            new URL(canAccessPortal ? "/" : "/auth", req.url)
+          );
+        }
+        if (pathname === "/auth" && canAccessPortal) {
+          return NextResponse.redirect(new URL("/", req.url));
+        }
       }
     }
 
