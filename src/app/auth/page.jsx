@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { establishSessionFromUrl } from "@/lib/parseAuthHash";
 import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
@@ -15,23 +16,67 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [error, setError] = useState("");
+  const [processingInvite, setProcessingInvite] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.location.hash.includes("access_token")
+  );
 
   useEffect(() => {
-    const hash = window.location.hash.replace(/^#/, "");
-    if (!hash) return;
+    async function handleHash() {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (!hash) return;
 
-    const params = new URLSearchParams(hash);
-    const description =
-      params.get("error_description") || params.get("error");
+      const params = new URLSearchParams(hash);
+      const description =
+        params.get("error_description") || params.get("error");
 
-    if (description) {
-      setError(
-        description.replace(/\+/g, " ") +
-          ". Ask your admin for a new invite link."
-      );
-      window.history.replaceState(null, "", "/auth");
+      if (description) {
+        setProcessingInvite(false);
+        setError(
+          description.replace(/\+/g, " ") +
+            ". Ask your admin for a new invite link."
+        );
+        window.history.replaceState(null, "", "/auth");
+        return;
+      }
+
+      if (!hash.includes("access_token")) return;
+
+      setProcessingInvite(true);
+
+      try {
+        const session = await establishSessionFromUrl(supabase);
+        const type = params.get("type");
+
+        if (session && type === "invite") {
+          router.replace("/signup");
+          return;
+        }
+
+        if (session) {
+          const { data: profile } = await supabase
+            .from("users")
+            .select("status")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile?.status === "pending_auth") {
+            router.replace("/signup");
+            return;
+          }
+
+          router.replace("/");
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+
+      setProcessingInvite(false);
     }
-  }, []);
+
+    handleHash();
+  }, [router]);
 
   async function loginWithPassword() {
     setLoading(true);
@@ -100,6 +145,14 @@ export default function AuthPage() {
     setOtpSent(false);
     setOtp("");
     setError("");
+  }
+
+  if (processingInvite) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <p className="text-sm text-gray-500">Setting up your account…</p>
+      </div>
+    );
   }
 
   return (
