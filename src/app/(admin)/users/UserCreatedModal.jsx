@@ -13,9 +13,10 @@ export default function UserCreatedModal({ email, onClose }) {
         </p>
 
         <p className="text-sm text-gray-500">
-          If the email doesn&apos;t arrive, use <strong>Resend email</strong> on
-          the Users page. Until Postmark approves your account, only{" "}
-          <strong>@krishecarbon.com</strong> addresses can receive emails.
+          If the link in the email doesn&apos;t work, check Supabase → URL
+          Configuration: Site URL must be{" "}
+          <strong>https://admin.krishecarbon.com</strong> (with https://). Then
+          click <strong>Resend email</strong> on the Users page.
         </p>
 
         <div className="flex justify-end pt-2">

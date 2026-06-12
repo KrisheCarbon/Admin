@@ -1,37 +1,12 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { getSignupRedirect, getSiteUrl } from "@/lib/siteUrl";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-function getSiteUrl() {
-  const url =
-    process.env.SITE_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : null) ||
-    (process.env.NODE_ENV === "production"
-      ? "https://admin.krishecarbon.com"
-      : null);
-
-  if (!url) {
-    throw new Error(
-      "SITE_URL is not configured. Set SITE_URL=https://admin.krishecarbon.com in Vercel env vars (or .env.local for local dev)."
-    );
-  }
-
-  // Ensure protocol is present (Supabase redirect URLs must be full URLs).
-  const normalized = url.replace(/\/$/, "");
-  return normalized.startsWith("http") ? normalized : `https://${normalized}`;
-}
-
-function getSignupRedirect() {
-  return `${getSiteUrl()}/signup`;
-}
 
 export async function createUser(form) {
   const redirectTo = getSignupRedirect();
