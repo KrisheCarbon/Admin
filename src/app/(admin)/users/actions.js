@@ -8,13 +8,25 @@ const supabase = createClient(
 );
 
 function getSiteUrl() {
-  const url = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  const url =
+    process.env.SITE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : null) ||
+    (process.env.NODE_ENV === "production"
+      ? "https://admin.krishecarbon.com"
+      : null);
+
   if (!url) {
     throw new Error(
-      "SITE_URL is not configured. Add it to .env.local (e.g. http://localhost:3000)."
+      "SITE_URL is not configured. Set SITE_URL=https://admin.krishecarbon.com in Vercel env vars (or .env.local for local dev)."
     );
   }
-  return url.replace(/\/$/, "");
+
+  // Ensure protocol is present (Supabase redirect URLs must be full URLs).
+  const normalized = url.replace(/\/$/, "");
+  return normalized.startsWith("http") ? normalized : `https://${normalized}`;
 }
 
 function getSignupRedirect() {
