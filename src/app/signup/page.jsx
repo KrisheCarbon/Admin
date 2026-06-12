@@ -5,19 +5,21 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { establishSessionFromUrl } from "@/lib/parseAuthHash";
-import { completeSignup } from "./actions";
+import { checkSignupEmail, completeSignup } from "./actions";
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [step, setStep] = useState("loading"); // loading | setup | waiting | done
+  const [step, setStep] = useState("loading");
   const [userId, setUserId] = useState(null);
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [linkExpired, setLinkExpired] = useState(false);
 
   useEffect(() => {
     let settled = false;
@@ -32,11 +34,20 @@ function SignupForm() {
       setStep("setup");
     }
 
+    function showFallback(msg) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      if (msg) setError(msg);
+      setLinkExpired(!!msg);
+      setStep("otp-email");
+      window.history.replaceState(null, "", "/signup");
+    }
+
     async function init() {
       const queryError = searchParams.get("error_description");
       if (queryError) {
-        setError(decodeURIComponent(queryError));
-        setStep("waiting");
+        showFallback(decodeURIComponent(queryError.replace(/\+/g, " ")));
         return;
       }
 
@@ -44,16 +55,15 @@ function SignupForm() {
       const hashParams = new URLSearchParams(hash);
       const hashError =
         hashParams.get("error_description") || hashParams.get("error");
+
       if (hashError) {
-        setError(hashError.replace(/\+/g, " "));
-        setStep("waiting");
+        showFallback(hashError.replace(/\+/g, " "));
         return;
       }
 
       const code = searchParams.get("code");
 
       try {
-        // Invite links deliver tokens in the URL hash — parse them manually.
         const hashSession = await establishSessionFromUrl(supabase);
         if (hashSession) {
           activate(hashSession);
@@ -78,20 +88,85 @@ function SignupForm() {
           return;
         }
       } catch (err) {
-        setError(err.message);
-        setStep("waiting");
+        showFallback(err.message);
         return;
       }
 
       timeoutId = setTimeout(() => {
-        setStep((s) => (s === "loading" ? "waiting" : s));
+        if (!settled) {
+          settled = true;
+          setStep("otp-email");
+        }
       }, 2000);
     }
 
     init();
-
     return () => clearTimeout(timeoutId);
   }, [searchParams]);
+
+  async function sendOtp() {
+    if (!email) {
+      setError("Enter your email");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const check = await checkSignupEmail(email);
+      if (!check.allowed) {
+        if (check.reason === "not_found") {
+          setError("No account found. Contact your admin.");
+        } else if (check.reason === "already_active") {
+          setError("Account already set up. Use the login page.");
+        } else if (check.reason === "disabled") {
+          setError("This account is disabled. Contact your admin.");
+        } else {
+          setError("Unable to verify this email.");
+        }
+        setLoading(false);
+        return;
+      }
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) throw otpError;
+
+      setStep("otp-code");
+    } catch (err) {
+      setError(err.message);
+    }
+
+    setLoading(false);
+  }
+
+  async function verifyOtp() {
+    setLoading(true);
+    setError("");
+
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
+
+    if (verifyError) {
+      setError(verifyError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data.session) {
+      setUserId(data.session.user.id);
+      setEmail(data.session.user.email ?? email);
+      setStep("setup");
+    }
+
+    setLoading(false);
+  }
 
   async function handleSubmit() {
     setError("");
@@ -111,6 +186,7 @@ function SignupForm() {
       const { error: pwError } = await supabase.auth.updateUser({ password });
       if (pwError) throw pwError;
 
+      // Account is only activated after password is saved — required for dMRV.
       await completeSignup({ userId });
       setStep("done");
       setTimeout(() => router.replace("/"), 1500);
@@ -145,22 +221,92 @@ function SignupForm() {
           </p>
         )}
 
-        {step === "waiting" && (
-          <div className="space-y-4 text-center">
-            <p className="text-sm text-gray-600">
-              Open the setup link from your invite email to create your password.
+        {step === "otp-email" && (
+          <>
+            {linkExpired && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-3 py-2">
+                Your invite link expired or was already used (Gmail warnings
+                can cause this). Verify your email below instead.
+              </p>
+            )}
+
+            <p className="text-sm text-gray-600 text-center">
+              Enter the email your admin registered. We&apos;ll send a one-time
+              code to verify it&apos;s you — then you&apos;ll{" "}
+              <strong>create your password</strong> (used for admin portal and
+              dMRV app login).
             </p>
-            <p className="text-xs text-gray-400">
-              Links expire after 24 hours. Ask your admin to click{" "}
-              <strong>Resend email</strong> on the Users page.
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">
+                Work email
+              </label>
+              <input
+                type="email"
+                placeholder="you@krishecarbon.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+              />
+            </div>
+
+            <button
+              onClick={sendOtp}
+              disabled={loading || !email}
+              className="w-full bg-gray-900 text-white py-2.5 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
+            >
+              {loading ? "Sending…" : "Send verification code"}
+            </button>
+          </>
+        )}
+
+        {step === "otp-code" && (
+          <>
+            <p className="text-sm text-gray-500 text-center">
+              Code sent to{" "}
+              <span className="font-medium text-gray-700">{email}</span>. After
+              verifying, you&apos;ll set your password.
             </p>
-          </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">
+                Verification code
+              </label>
+              <input
+                type="text"
+                placeholder="6-digit code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-gray-900"
+              />
+            </div>
+
+            <button
+              onClick={verifyOtp}
+              disabled={loading || !otp}
+              className="w-full bg-gray-900 text-white py-2.5 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
+            >
+              {loading ? "Verifying…" : "Verify & continue"}
+            </button>
+
+            <button
+              onClick={() => {
+                setStep("otp-email");
+                setOtp("");
+                setError("");
+              }}
+              className="w-full text-sm text-gray-500 hover:text-gray-900"
+            >
+              Use a different email
+            </button>
+          </>
         )}
 
         {step === "setup" && (
           <>
             <p className="text-sm text-gray-600 text-center">
-              You are creating a password for:
+              Create the password you&apos;ll use to sign in (admin portal and
+              dMRV app):
             </p>
             <EmailBadge email={email} />
 
